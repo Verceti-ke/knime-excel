@@ -46,18 +46,17 @@
  * History
  *   Oct 13, 2020 (Simon Schmid, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.ext.poi3.node.io.filehandling.excel.reader;
+package org.knime.ext.poi3.node.io.filehandling.excel.reader.read;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.knime.core.data.DataType;
-import org.knime.core.data.blob.BinaryObjectDataCell;
+import org.knime.core.data.convert.map.BooleanCellValueProducer;
 import org.knime.core.data.convert.map.DoubleCellValueProducer;
 import org.knime.core.data.convert.map.IntCellValueProducer;
 import org.knime.core.data.convert.map.LongCellValueProducer;
@@ -71,19 +70,22 @@ import org.knime.core.data.def.DoubleCell;
 import org.knime.core.data.def.IntCell;
 import org.knime.core.data.def.LongCell;
 import org.knime.core.data.def.StringCell;
+import org.knime.core.data.time.localdate.LocalDateCellFactory;
+import org.knime.core.data.time.localdatetime.LocalDateTimeCellFactory;
+import org.knime.core.data.time.localtime.LocalTimeCellFactory;
+import org.knime.ext.poi3.node.io.filehandling.excel.reader.ExcelTableReaderConfig;
 import org.knime.filehandling.core.node.table.reader.ReadAdapter;
 import org.knime.filehandling.core.node.table.reader.ReadAdapter.ReadAdapterParams;
 import org.knime.filehandling.core.node.table.reader.ReadAdapterFactory;
 
 /**
- * TODO copied from csv reader, implement
+ * Factory for {@link ExcelReadAdapter} objects.
  *
- * Factory for StringReadAdapter objects.
- *
+ * @author Simon Schmid, KNIME GmbH, Konstanz, Germany
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @since 4.2
  */
-enum ExcelReadAdapterFactory implements ReadAdapterFactory<Class<?>, String> {
+@SuppressWarnings("javadoc")
+public enum ExcelReadAdapterFactory implements ReadAdapterFactory<Class<?>, ExcelCell> {
 
         /** The singleton instance. */
         INSTANCE;
@@ -95,14 +97,13 @@ enum ExcelReadAdapterFactory implements ReadAdapterFactory<Class<?>, String> {
     private static Map<Class<?>, DataType> createDefaultTypeMap() {
         final Map<Class<?>, DataType> defaultTypes = new HashMap<>();
         defaultTypes.put(Boolean.class, BooleanCell.TYPE);
-        defaultTypes.put(Byte.class, IntCell.TYPE);
-        defaultTypes.put(Short.class, IntCell.TYPE);
         defaultTypes.put(Integer.class, IntCell.TYPE);
         defaultTypes.put(Long.class, LongCell.TYPE);
-        defaultTypes.put(Float.class, DoubleCell.TYPE);
         defaultTypes.put(Double.class, DoubleCell.TYPE);
         defaultTypes.put(String.class, StringCell.TYPE);
-        defaultTypes.put(InputStream.class, BinaryObjectDataCell.TYPE);
+        defaultTypes.put(LocalTime.class, LocalTimeCellFactory.TYPE);
+        defaultTypes.put(LocalDate.class, LocalDateCellFactory.TYPE);
+        defaultTypes.put(LocalDateTime.class, LocalDateTimeCellFactory.TYPE);
         return Collections.unmodifiableMap(defaultTypes);
     }
 
@@ -115,38 +116,41 @@ enum ExcelReadAdapterFactory implements ReadAdapterFactory<Class<?>, String> {
             new SupplierCellValueProducerFactory<>(Double.class, Double.class, StringToDoubleCellValueProducer::new));
         registry.register(
             new SupplierCellValueProducerFactory<>(Long.class, Long.class, StringToLongCellValueProducer::new));
+        registry.register(new SupplierCellValueProducerFactory<>(Boolean.class, Boolean.class,
+            StringToBooleanCellValueProducer::new));
         registry.register(new SimpleCellValueProducerFactory<>(String.class, String.class,
             ExcelReadAdapterFactory::readStringFromSource));
         registry.register(new SimpleCellValueProducerFactory<>(LocalDate.class, LocalDate.class,
             ExcelReadAdapterFactory::readLocalDateFromSource));
         registry.register(new SimpleCellValueProducerFactory<>(LocalTime.class, LocalTime.class,
             ExcelReadAdapterFactory::readLocalTimeFromSource));
-        registry.register(new SimpleCellValueProducerFactory<>(InputStream.class, InputStream.class,
-            ExcelReadAdapterFactory::readByteFieldsFromSource));
+        registry.register(new SimpleCellValueProducerFactory<>(LocalDateTime.class, LocalDateTime.class,
+            ExcelReadAdapterFactory::readLocalDateTimeFromSource));
         return registry;
     }
 
     private static String readStringFromSource(final ExcelReadAdapter source,
         final ReadAdapterParams<ExcelReadAdapter, ExcelTableReaderConfig> params) {
-        return source.get(params);
+        final ExcelCell excelCell = source.get(params);
+        return excelCell == null ? null : excelCell.getStringValue();
     }
 
     private static LocalDate readLocalDateFromSource(final ExcelReadAdapter source,
         final ReadAdapterParams<ExcelReadAdapter, ExcelTableReaderConfig> params) {
-        final String localDate = source.get(params);
-        return LocalDate.parse(localDate);
+        final ExcelCell excelCell = source.get(params);
+        return excelCell == null ? null : excelCell.getLocalDateValue();
     }
 
     private static LocalTime readLocalTimeFromSource(final ExcelReadAdapter source,
         final ReadAdapterParams<ExcelReadAdapter, ExcelTableReaderConfig> params) {
-        final String localTime = source.get(params);
-        return LocalTime.parse(localTime);
+        final ExcelCell excelCell = source.get(params);
+        return excelCell == null ? null : excelCell.getLocalTimeValue();
     }
 
-    private static InputStream readByteFieldsFromSource(final ExcelReadAdapter source,
+    private static LocalDateTime readLocalDateTimeFromSource(final ExcelReadAdapter source,
         final ReadAdapterParams<ExcelReadAdapter, ExcelTableReaderConfig> params) {
-        final String bytes = source.get(params);
-        return new ByteArrayInputStream(bytes.getBytes());
+        final ExcelCell excelCell = source.get(params);
+        return excelCell == null ? null : excelCell.getLocalDateTimeValue();
     }
 
     private abstract static class AbstractReadAdapterToPrimitiveCellValueProducer<S extends ReadAdapter<?, ?>, T>
@@ -166,7 +170,7 @@ enum ExcelReadAdapterFactory implements ReadAdapterFactory<Class<?>, String> {
         @Override
         public int produceIntCellValue(final ExcelReadAdapter source,
             final ReadAdapterParams<ExcelReadAdapter, ExcelTableReaderConfig> params) throws MappingException {
-            return Integer.parseInt(source.get(params));
+            return source.get(params).getIntValue();
         }
 
     }
@@ -178,7 +182,7 @@ enum ExcelReadAdapterFactory implements ReadAdapterFactory<Class<?>, String> {
         @Override
         public double produceDoubleCellValue(final ExcelReadAdapter source,
             final ReadAdapterParams<ExcelReadAdapter, ExcelTableReaderConfig> params) throws MappingException {
-            return Double.parseDouble(source.get(params));
+            return source.get(params).getDoubleValue();
         }
 
     }
@@ -190,13 +194,25 @@ enum ExcelReadAdapterFactory implements ReadAdapterFactory<Class<?>, String> {
         @Override
         public long produceLongCellValue(final ExcelReadAdapter source,
             final ReadAdapterParams<ExcelReadAdapter, ExcelTableReaderConfig> params) throws MappingException {
-            return Long.parseLong(source.get(params));
+            return source.get(params).getLongValue();
+        }
+
+    }
+
+    private static class StringToBooleanCellValueProducer
+        extends AbstractReadAdapterToPrimitiveCellValueProducer<ExcelReadAdapter, Boolean> implements
+        BooleanCellValueProducer<ExcelReadAdapter, ReadAdapterParams<ExcelReadAdapter, ExcelTableReaderConfig>> {
+
+        @Override
+        public boolean produceBooleanCellValue(final ExcelReadAdapter source,
+            final ReadAdapterParams<ExcelReadAdapter, ExcelTableReaderConfig> params) throws MappingException {
+            return source.get(params).getBooleanValue();
         }
 
     }
 
     @Override
-    public ReadAdapter<Class<?>, String> createReadAdapter() {
+    public ReadAdapter<Class<?>, ExcelCell> createReadAdapter() {
         return new ExcelReadAdapter();
     }
 

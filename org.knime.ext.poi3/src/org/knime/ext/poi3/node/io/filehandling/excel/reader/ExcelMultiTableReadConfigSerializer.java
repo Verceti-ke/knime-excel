@@ -49,6 +49,7 @@
 package org.knime.ext.poi3.node.io.filehandling.excel.reader;
 
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeSettings;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
@@ -72,17 +73,22 @@ enum ExcelMultiTableReadConfigSerializer implements
          */
         INSTANCE;
 
+    private static final String CFG_ADVANCED_SETTINGS_TAB = "advanced_settings";
+
+    private static final String CGF_USE_15_DIGITS_PRECISION = "use_15_digits_precision";
+
     @Override
     public void loadInDialog(
         final DefaultMultiTableReadConfig<ExcelTableReaderConfig, DefaultTableReadConfig<ExcelTableReaderConfig>> config,
         final NodeSettingsRO settings, final PortObjectSpec[] specs) throws NotConfigurableException {
-        // TODO add settings to dialog
+        loadAdvancedSettingsTabInDialog(config, getOrEmpty(settings, CFG_ADVANCED_SETTINGS_TAB));
     }
 
     @Override
     public void loadInModel(
         final DefaultMultiTableReadConfig<ExcelTableReaderConfig, DefaultTableReadConfig<ExcelTableReaderConfig>> config,
         final NodeSettingsRO settings) throws InvalidSettingsException {
+        loadAdvancedSettingsTabInModel(config, settings.getNodeSettings(CFG_ADVANCED_SETTINGS_TAB));
         // TODO add settings to dialog, for now hard-coded
         final DefaultTableReadConfig<?> tc = config.getTableReadConfig();
         tc.setAllowShortRows(true);
@@ -95,19 +101,52 @@ enum ExcelMultiTableReadConfigSerializer implements
     public void saveInModel(
         final DefaultMultiTableReadConfig<ExcelTableReaderConfig, DefaultTableReadConfig<ExcelTableReaderConfig>> config,
         final NodeSettingsWO settings) {
-        // TODO add settings to dialog
+        saveAdvancedSettingsTab(config, settings.addNodeSettings(CFG_ADVANCED_SETTINGS_TAB));
     }
 
     @Override
     public void validate(final NodeSettingsRO settings) throws InvalidSettingsException {
-        // TODO add settings to dialog
+        validateAdvancedSettingsTab(settings.getNodeSettings(CFG_ADVANCED_SETTINGS_TAB));
     }
 
     @Override
     public void saveInDialog(
         final DefaultMultiTableReadConfig<ExcelTableReaderConfig, DefaultTableReadConfig<ExcelTableReaderConfig>> config,
         final NodeSettingsWO settings) throws InvalidSettingsException {
-        saveInModel(config, settings);
+        saveAdvancedSettingsTab(config, settings.addNodeSettings(CFG_ADVANCED_SETTINGS_TAB));
+    }
+
+    private static void loadAdvancedSettingsTabInDialog(
+        final DefaultMultiTableReadConfig<ExcelTableReaderConfig, DefaultTableReadConfig<ExcelTableReaderConfig>> config,
+        final NodeSettingsRO settings) {
+        final ExcelTableReaderConfig excelConfig = config.getReaderSpecificConfig();
+        excelConfig.setUse15DigitsPrecision(settings.getBoolean(CGF_USE_15_DIGITS_PRECISION, true));
+    }
+
+    private static void loadAdvancedSettingsTabInModel(
+        final DefaultMultiTableReadConfig<ExcelTableReaderConfig, DefaultTableReadConfig<ExcelTableReaderConfig>> config,
+        final NodeSettingsRO settings) throws InvalidSettingsException {
+        final ExcelTableReaderConfig excelConfig = config.getReaderSpecificConfig();
+        excelConfig.setUse15DigitsPrecision(settings.getBoolean(CGF_USE_15_DIGITS_PRECISION));
+    }
+
+    private static void saveAdvancedSettingsTab(
+        final DefaultMultiTableReadConfig<ExcelTableReaderConfig, DefaultTableReadConfig<ExcelTableReaderConfig>> config,
+        final NodeSettingsWO settings) {
+        final ExcelTableReaderConfig excelConfig = config.getReaderSpecificConfig();
+        settings.addBoolean(CGF_USE_15_DIGITS_PRECISION, excelConfig.isUse15DigitsPrecision());
+    }
+
+    public static void validateAdvancedSettingsTab(final NodeSettingsRO settings) throws InvalidSettingsException {
+        settings.getBoolean(CGF_USE_15_DIGITS_PRECISION);
+    }
+
+    private static NodeSettingsRO getOrEmpty(final NodeSettingsRO settings, final String key) {
+        try {
+            return settings.getNodeSettings(key);
+        } catch (InvalidSettingsException ise) { // NOSONAR
+            return new NodeSettings(key);
+        }
     }
 
 }

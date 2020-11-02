@@ -56,6 +56,7 @@ import java.util.stream.Stream;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 
 import org.knime.core.data.convert.map.ProductionPath;
@@ -91,6 +92,8 @@ final class ExcelTableReaderNodeDialog extends AbstractTableReaderNodeDialog<Exc
 
     private final SettingsModelReaderFileChooser m_settingsModelFilePanel;
 
+    private final JCheckBox m_use15DigitsPrecision = new JCheckBox("Use Excel 15 digits precision");
+
     ExcelTableReaderNodeDialog(final SettingsModelReaderFileChooser settingsModelReaderFileChooser,
         final DefaultMultiTableReadConfig<ExcelTableReaderConfig, DefaultTableReadConfig<ExcelTableReaderConfig>> config,
         final MultiTableReadFactory<ExcelTableReaderConfig, Class<?>> readFactory,
@@ -106,6 +109,7 @@ final class ExcelTableReaderNodeDialog extends AbstractTableReaderNodeDialog<Exc
             FilterMode.FILE, FilterMode.FILES_IN_FOLDERS);
 
         addTab("Settings", createFilePanel());
+        addTab("Advanced", createAdvancedSettingsPanel());
     }
 
     private JPanel createFilePanel() {
@@ -119,10 +123,20 @@ final class ExcelTableReaderNodeDialog extends AbstractTableReaderNodeDialog<Exc
         return filePanel;
     }
 
+    private JPanel createAdvancedSettingsPanel() {
+        final JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, m_use15DigitsPrecision.getPreferredSize().height));
+        panel.add(m_use15DigitsPrecision);
+        panel.add(Box.createHorizontalGlue());
+        return panel;
+    }
+
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) throws InvalidSettingsException {
         m_filePanel.saveSettingsTo(SettingsUtils.getOrAdd(settings, SettingsUtils.CFG_SETTINGS_TAB));
         saveTableReadSettings();
+        saveExcelReadSettings();
         m_config.saveInDialog(settings);
     }
 
@@ -132,6 +146,8 @@ final class ExcelTableReaderNodeDialog extends AbstractTableReaderNodeDialog<Exc
         // FIXME: loading should be handled by the config (AP-14460 & AP-14462)
         m_filePanel.loadSettingsFrom(SettingsUtils.getOrEmpty(settings, SettingsUtils.CFG_SETTINGS_TAB), specs);
         m_config.loadInDialog(settings, specs);
+        loadTableReadSettings();
+        loadExcelSettings();
     }
 
     /**
@@ -139,11 +155,32 @@ final class ExcelTableReaderNodeDialog extends AbstractTableReaderNodeDialog<Exc
      */
     private void saveTableReadSettings() {
         final DefaultTableReadConfig<ExcelTableReaderConfig> tableReadConfig = m_config.getTableReadConfig();
-
         tableReadConfig.setUseRowIDIdx(false);
-
         tableReadConfig.setUseColumnHeaderIdx(true);
         tableReadConfig.setColumnHeaderIdx(0);
+    }
+
+    /**
+     * Fill in the setting values in {@link ExcelTableReaderConfig} using values from dialog.
+     */
+    private void saveExcelReadSettings() {
+        final ExcelTableReaderConfig excelConfig = m_config.getReaderSpecificConfig();
+        excelConfig.setUse15DigitsPrecision(m_use15DigitsPrecision.isSelected());
+    }
+
+    /**
+     * Fill in dialog components with {@link TableReadConfig} values.
+     */
+    private static void loadTableReadSettings() {
+        // TODO options are added later
+    }
+
+    /**
+     * Fill in dialog components with {@link ExcelTableReaderConfig} values.
+     */
+    private void loadExcelSettings() {
+        final ExcelTableReaderConfig excelConfig = m_config.getReaderSpecificConfig();
+        m_use15DigitsPrecision.setSelected(excelConfig.isUse15DigitsPrecision());
     }
 
     @Override

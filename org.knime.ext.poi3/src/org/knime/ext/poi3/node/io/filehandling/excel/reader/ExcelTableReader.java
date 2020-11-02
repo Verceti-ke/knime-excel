@@ -50,15 +50,21 @@ package org.knime.ext.poi3.node.io.filehandling.excel.reader;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Arrays;
 
+import org.apache.poi.UnsupportedFileFormatException;
+import org.apache.poi.openxml4j.exceptions.ODFNotOfficeXmlFileException;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
+import org.apache.poi.xssf.XLSBUnsupportedException;
 import org.knime.core.node.ExecutionMonitor;
+import org.knime.ext.poi3.node.io.filehandling.excel.reader.read.ExcelCell;
+import org.knime.ext.poi3.node.io.filehandling.excel.reader.read.ExcelCell.KNIMECellType;
 import org.knime.ext.poi3.node.io.filehandling.excel.reader.read.ExcelRead;
-import org.knime.ext.poi3.node.io.filehandling.excel.reader.read.XLSRead;
-import org.knime.ext.poi3.node.io.filehandling.excel.reader.read.XLSXRead;
+import org.knime.ext.poi3.node.io.filehandling.excel.reader.read.xls.XLSRead;
+import org.knime.ext.poi3.node.io.filehandling.excel.reader.read.xlsx.XLSXRead;
 import org.knime.filehandling.core.node.table.reader.TableReader;
 import org.knime.filehandling.core.node.table.reader.config.TableReadConfig;
 import org.knime.filehandling.core.node.table.reader.read.Read;
@@ -73,19 +79,20 @@ import org.knime.filehandling.core.node.table.reader.type.hierarchy.TypeTester;
  *
  * @author Simon Schmid, KNIME GmbH, Konstanz, Germany
  */
-final class ExcelTableReader implements TableReader<ExcelTableReaderConfig, Class<?>, String> {
+final class ExcelTableReader implements TableReader<ExcelTableReaderConfig, Class<?>, ExcelCell> {
 
-    static final TypeFocusableTypeHierarchy<Class<?>, String> TYPE_HIERARCHY = createHierarchy();
+    static final TypeFocusableTypeHierarchy<Class<?>, ExcelCell> TYPE_HIERARCHY = createHierarchy();
 
     @Override
-    public Read<String> read(final Path path, final TableReadConfig<ExcelTableReaderConfig> config) throws IOException {
+    public Read<ExcelCell> read(final Path path, final TableReadConfig<ExcelTableReaderConfig> config)
+        throws IOException {
         return getExcelRead(path, config);
     }
 
     @Override
     public TypedReaderTableSpec<Class<?>> readSpec(final Path path,
         final TableReadConfig<ExcelTableReaderConfig> config, final ExecutionMonitor exec) throws IOException {
-        final TableSpecGuesser<Class<?>, String> guesser = createGuesser();
+        final TableSpecGuesser<Class<?>, ExcelCell> guesser = createGuesser();
         try (final ExcelRead read = getExcelRead(path, config)) {
             return guesser.guessSpec(read, config, exec);
         }
@@ -96,40 +103,69 @@ final class ExcelTableReader implements TableReader<ExcelTableReaderConfig, Clas
         try {
             final String pathLowerCase = path.toString().toLowerCase();
             if (pathLowerCase.endsWith(".xlsx") || pathLowerCase.endsWith(".xlsm")) {
-                return new XLSXRead(path, config);
+                return createXLSXRead(path, config);
             }
+            return new XLSRead(path, config);
+        } catch (ODFNotOfficeXmlFileException e) {
+            // ODF (open office) files are xml files and, hence, not detected as invalid file format by the above check
+            // however, ODF files are not supported
+            throw createUnsupportedFileFormatException(e, path, "ODF");
+        } catch (XLSBUnsupportedException e) {
+            // TODO: remove this catch with AP-15391
+            throw createUnsupportedFileFormatException(e, path, "XLSB");
+        } catch (UnsupportedFileFormatException e) {
+            throw createUnsupportedFileFormatException(e, path, null);
+        }
+    }
+
+    private static ExcelRead createXLSXRead(final Path path, final TableReadConfig<ExcelTableReaderConfig> config)
+        throws IOException {
+        try {
+            return new XLSXRead(path, config);
         } catch (OLE2NotOfficeXmlFileException e) { // NOSONAR
             // Happens if an xls file has been specified that ends with xlsx or xlsm.
             // We do not fail but simply use the XLSParser instead.
+            return new XLSRead(path, config);
         }
-        return new XLSRead(path, config);
     }
 
-    private static TableSpecGuesser<Class<?>, String> createGuesser() {
-        return new TableSpecGuesser<>(createHierarchy(), Function.identity());
+    /**
+     * Creates an {@link IllegalArgumentException} with a user-friendly message explaining that the specified file does
+     * not have a supported format. The passed exception will be further passed into the created
+     * {@link IllegalArgumentException}.
+     *
+     * @param e the exception to set, can be {@code null}
+     * @param path the file path
+     * @param fileFormat the unsupported file format if known, can be {@code null}
+     * @return the created {@link IllegalArgumentException}
+     */
+    private static IllegalArgumentException createUnsupportedFileFormatException(final Exception e, final Path path,
+        final String fileFormat) {
+        final String formatString = fileFormat != null ? ("(" + fileFormat + ") ") : "";
+        throw new IllegalArgumentException("The format " + formatString + "of the file '" + path
+            + "' is not supported. Please select an XLSX, XLSM, or XLS file.", e); // TODO add XLSB with AP-15391
     }
 
-    // TODO copied from CSV reader for now, need to be adjusted for Excel types
-    private static TypeFocusableTypeHierarchy<Class<?>, String> createHierarchy() {
-        return TreeTypeHierarchy.builder(createTypeTester(String.class, t -> {
-        })).addType(String.class, createTypeTester(Double.class, Double::parseDouble))
-            .addType(Double.class, createTypeTester(Long.class, Long::parseLong))
-            .addType(Long.class, createTypeTester(Integer.class, Integer::parseInt)).build();
+    private static TableSpecGuesser<Class<?>, ExcelCell> createGuesser() {
+        return new TableSpecGuesser<>(createHierarchy(), ExcelCell::getStringValue);
     }
 
-    private static TypeTester<Class<?>, String> createTypeTester(final Class<?> type, final Consumer<String> tester) {
-        return TypeTester.createTypeTester(type, consumerToPredicate(tester));
+    private static TypeFocusableTypeHierarchy<Class<?>, ExcelCell> createHierarchy() {
+        return TreeTypeHierarchy.builder(createTypeTester(String.class, KNIMECellType.values()))
+            .addType(String.class,
+                createTypeTester(Double.class, KNIMECellType.DOUBLE, KNIMECellType.LONG, KNIMECellType.INT))
+            .addType(Double.class, createTypeTester(Long.class, KNIMECellType.LONG, KNIMECellType.INT))
+            .addType(Long.class, createTypeTester(Integer.class, KNIMECellType.INT))
+            .addType(String.class, createTypeTester(Boolean.class, KNIMECellType.BOOLEAN))
+            .addType(String.class,
+                createTypeTester(LocalDateTime.class, KNIMECellType.LOCAL_DATE_TIME, KNIMECellType.LOCAL_DATE))
+            .addType(LocalDateTime.class, createTypeTester(LocalDate.class, KNIMECellType.LOCAL_DATE))
+            .addType(String.class, createTypeTester(LocalTime.class, KNIMECellType.LOCAL_TIME)).build();
     }
 
-    private static Predicate<String> consumerToPredicate(final Consumer<String> tester) {
-        return s -> {
-            try {
-                tester.accept(s);
-                return true;
-            } catch (NumberFormatException ex) {
-                return false;
-            }
-        };
+    private static TypeTester<Class<?>, ExcelCell> createTypeTester(final Class<?> type,
+        final KNIMECellType... dataType) {
+        return TypeTester.createTypeTester(type, e -> Arrays.binarySearch(dataType, e.getType()) >= 0);
     }
 
 }

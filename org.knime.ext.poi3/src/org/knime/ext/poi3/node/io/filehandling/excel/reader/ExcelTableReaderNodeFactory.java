@@ -54,6 +54,8 @@ import java.util.function.Function;
 import org.knime.core.data.convert.map.ProductionPath;
 import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.core.node.context.url.URLConfiguration;
+import org.knime.ext.poi3.node.io.filehandling.excel.reader.read.ExcelCell;
+import org.knime.ext.poi3.node.io.filehandling.excel.reader.read.ExcelReadAdapterFactory;
 import org.knime.filehandling.core.connections.FSCategory;
 import org.knime.filehandling.core.connections.FSLocation;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.reader.SettingsModelReaderFileChooser;
@@ -72,7 +74,8 @@ import org.knime.filehandling.core.node.table.reader.type.hierarchy.TypeHierarch
  *
  * @author Simon Schmid, KNIME GmbH, Konstanz, Germany
  */
-public final class ExcelTableReaderNodeFactory extends AbstractTableReaderNodeFactory<ExcelTableReaderConfig, Class<?>, String> {
+public final class ExcelTableReaderNodeFactory
+    extends AbstractTableReaderNodeFactory<ExcelTableReaderConfig, Class<?>, ExcelCell> {
 
     private static final String[] FILE_SUFFIXES = new String[]{".xlsx", ".xlsm", ".xls"};
 
@@ -99,19 +102,18 @@ public final class ExcelTableReaderNodeFactory extends AbstractTableReaderNodeFa
     }
 
     @Override
-    protected ReadAdapterFactory<Class<?>, String> getReadAdapterFactory() {
-
+    protected ReadAdapterFactory<Class<?>, ExcelCell> getReadAdapterFactory() {
         return ExcelReadAdapterFactory.INSTANCE;
     }
 
     @Override
-    protected TableReader<ExcelTableReaderConfig, Class<?>, String> createReader() {
+    protected TableReader<ExcelTableReaderConfig, Class<?>, ExcelCell> createReader() {
         return new ExcelTableReader();
     }
 
     @Override
-    protected String extractRowKey(final String value) {
-        return value;
+    protected String extractRowKey(final ExcelCell value) {
+        return value.getStringValue();
     }
 
     @Override
