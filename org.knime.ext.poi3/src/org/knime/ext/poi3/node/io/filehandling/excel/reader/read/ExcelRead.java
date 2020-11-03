@@ -169,7 +169,7 @@ public abstract class ExcelRead implements Read<ExcelCell> {
 
     @Override
     public final Optional<Path> getPath() {
-        return Optional.ofNullable(m_path);
+        return Optional.of(m_path);
     }
 
     @Override
@@ -262,7 +262,7 @@ public abstract class ExcelRead implements Read<ExcelCell> {
         @Override
         public RandomAccessible<ExcelCell> next() {
             if (!hasNext()) {
-                throw new NoSuchElementException("No more RandomAccessible available.");
+                throw new NoSuchElementException("No more rows available.");
             }
             return m_randomAccessibles.poll();
         }

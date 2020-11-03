@@ -116,7 +116,7 @@ public final class XLSXRead extends ExcelRead {
 
             final SheetIterator sheetsData = (SheetIterator)xssfReader.getSheetsData();
             if (!sheetsData.hasNext()) {
-                throw new IOException("Selected file does not have any sheet.");
+                throw new IOException("Selected file does not contain any sheet.");
             }
             m_countingSheetStream = new CountingInputStream(sheetsData.next());
             m_sheetSize = m_countingSheetStream.available();

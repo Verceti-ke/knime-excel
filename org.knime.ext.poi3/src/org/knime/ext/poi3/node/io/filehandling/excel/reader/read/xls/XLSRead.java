@@ -114,7 +114,7 @@ public final class XLSRead extends ExcelRead {
             final BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
             m_workbook = checkFileFormatAndCreateWorkbook(bufferedInputStream);
             if (m_workbook.getNumberOfSheets() < 1) {
-                throw new IOException("Selected file does not have any sheet.");
+                throw new IOException("Selected file does not contain any sheet.");
             }
             // take first sheet
             final Sheet sheet = m_workbook.getSheetAt(0);
@@ -138,7 +138,7 @@ public final class XLSRead extends ExcelRead {
             final HSSFWorkbook hssfWorkbook = (HSSFWorkbook)workbook;
             date1904 = hssfWorkbook.getInternalWorkbook().isUsing1904DateWindowing();
         } else {
-            //Probably unsupported
+            // Probably unsupported
             date1904 = false;
         }
         return date1904;
@@ -152,7 +152,6 @@ public final class XLSRead extends ExcelRead {
     private static Workbook checkFileFormatAndCreateWorkbook(final BufferedInputStream inputStream) throws IOException {
         switch (FileMagic.valueOf(inputStream)) {
             case OLE2:
-                break;
             case OOXML:
                 break;
             default:
