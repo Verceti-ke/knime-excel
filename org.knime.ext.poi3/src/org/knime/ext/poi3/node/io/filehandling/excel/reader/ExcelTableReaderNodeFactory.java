@@ -49,9 +49,7 @@
 package org.knime.ext.poi3.node.io.filehandling.excel.reader;
 
 import java.util.Optional;
-import java.util.function.Function;
 
-import org.knime.core.data.convert.map.ProductionPath;
 import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.core.node.context.url.URLConfiguration;
 import org.knime.ext.poi3.node.io.filehandling.excel.reader.read.ExcelCell;
@@ -62,6 +60,7 @@ import org.knime.filehandling.core.defaultnodesettings.filechooser.reader.Settin
 import org.knime.filehandling.core.defaultnodesettings.filtermode.SettingsModelFilterMode.FilterMode;
 import org.knime.filehandling.core.node.table.reader.AbstractTableReaderNodeFactory;
 import org.knime.filehandling.core.node.table.reader.MultiTableReadFactory;
+import org.knime.filehandling.core.node.table.reader.ProductionPathProvider;
 import org.knime.filehandling.core.node.table.reader.ReadAdapterFactory;
 import org.knime.filehandling.core.node.table.reader.TableReader;
 import org.knime.filehandling.core.node.table.reader.config.DefaultMultiTableReadConfig;
@@ -83,7 +82,7 @@ public final class ExcelTableReaderNodeFactory
     protected AbstractTableReaderNodeDialog<ExcelTableReaderConfig, Class<?>> createNodeDialogPane(
         final NodeCreationConfiguration creationConfig,
         final MultiTableReadFactory<ExcelTableReaderConfig, Class<?>> readFactory,
-        final Function<Class<?>, ProductionPath> defaultProductionPathFn) {
+        final ProductionPathProvider<Class<?>> defaultProductionPathFn) {
         return new ExcelTableReaderNodeDialog(createPathSettings(creationConfig), createConfig(), readFactory,
             defaultProductionPathFn);
     }

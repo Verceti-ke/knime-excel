@@ -59,7 +59,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 
-import org.knime.core.data.convert.map.ProductionPath;
 import org.knime.core.node.FlowVariableModel;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
@@ -72,6 +71,7 @@ import org.knime.filehandling.core.defaultnodesettings.filechooser.reader.ReadPa
 import org.knime.filehandling.core.defaultnodesettings.filechooser.reader.SettingsModelReaderFileChooser;
 import org.knime.filehandling.core.defaultnodesettings.filtermode.SettingsModelFilterMode.FilterMode;
 import org.knime.filehandling.core.node.table.reader.MultiTableReadFactory;
+import org.knime.filehandling.core.node.table.reader.ProductionPathProvider;
 import org.knime.filehandling.core.node.table.reader.config.DefaultMultiTableReadConfig;
 import org.knime.filehandling.core.node.table.reader.config.DefaultTableReadConfig;
 import org.knime.filehandling.core.node.table.reader.config.MultiTableReadConfig;
@@ -97,8 +97,8 @@ final class ExcelTableReaderNodeDialog extends AbstractTableReaderNodeDialog<Exc
     ExcelTableReaderNodeDialog(final SettingsModelReaderFileChooser settingsModelReaderFileChooser,
         final DefaultMultiTableReadConfig<ExcelTableReaderConfig, DefaultTableReadConfig<ExcelTableReaderConfig>> config,
         final MultiTableReadFactory<ExcelTableReaderConfig, Class<?>> readFactory,
-        final Function<Class<?>, ProductionPath> defaultProductionPathProvider) {
-        super(readFactory, defaultProductionPathProvider);
+        final ProductionPathProvider<Class<?>> defaultProductionPathProvider) {
+        super(readFactory, defaultProductionPathProvider, true);
         m_settingsModelFilePanel = settingsModelReaderFileChooser;
         m_config = config;
         final String[] keyChain =
