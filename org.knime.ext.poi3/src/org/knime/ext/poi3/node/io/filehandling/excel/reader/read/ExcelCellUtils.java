@@ -64,6 +64,8 @@ import com.google.common.math.DoubleMath;
  */
 public final class ExcelCellUtils {
 
+    private static final MathContext MATH_CONTEXT = new MathContext(15, RoundingMode.HALF_UP);
+
     private ExcelCellUtils() {
         // Hide constructor, utils class
     }
@@ -116,7 +118,7 @@ public final class ExcelCellUtils {
         // we do not use BigDecimal#valueOf as it converts the double into String which is then parsed (expensive).
         // as we are rounding anyway afterwards, passing the double directly into the constructor is fine
         final BigDecimal bd = new BigDecimal(cellValue); // NOSONAR
-        final BigDecimal roundedBD = bd.round(new MathContext(15, RoundingMode.HALF_UP));
+        final BigDecimal roundedBD = bd.round(MATH_CONTEXT);
         final double doubleValue = roundedBD.doubleValue();
         // check if we actually have an int or long and create the proper ExcelCell
         if (DoubleMath.isMathematicalInteger(doubleValue)) {

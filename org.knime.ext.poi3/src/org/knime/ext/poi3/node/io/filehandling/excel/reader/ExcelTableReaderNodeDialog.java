@@ -50,7 +50,6 @@ package org.knime.ext.poi3.node.io.filehandling.excel.reader;
 
 import java.awt.Dimension;
 import java.util.Arrays;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 import javax.swing.BorderFactory;
@@ -65,6 +64,7 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
 import org.knime.core.node.port.PortObjectSpec;
+import org.knime.ext.poi3.node.io.filehandling.excel.reader.read.ExcelCell.KNIMECellType;
 import org.knime.filehandling.core.data.location.variable.FSLocationVariableType;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.reader.DialogComponentReaderFileChooser;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.reader.ReadPathAccessor;
@@ -84,7 +84,7 @@ import org.knime.filehandling.core.util.SettingsUtils;
  *
  * @author Simon Schmid, KNIME GmbH, Konstanz, Germany
  */
-final class ExcelTableReaderNodeDialog extends AbstractTableReaderNodeDialog<ExcelTableReaderConfig, Class<?>> {
+final class ExcelTableReaderNodeDialog extends AbstractTableReaderNodeDialog<ExcelTableReaderConfig, KNIMECellType> {
 
     private final DialogComponentReaderFileChooser m_filePanel;
 
@@ -96,8 +96,8 @@ final class ExcelTableReaderNodeDialog extends AbstractTableReaderNodeDialog<Exc
 
     ExcelTableReaderNodeDialog(final SettingsModelReaderFileChooser settingsModelReaderFileChooser,
         final DefaultMultiTableReadConfig<ExcelTableReaderConfig, DefaultTableReadConfig<ExcelTableReaderConfig>> config,
-        final MultiTableReadFactory<ExcelTableReaderConfig, Class<?>> readFactory,
-        final ProductionPathProvider<Class<?>> defaultProductionPathProvider) {
+        final MultiTableReadFactory<ExcelTableReaderConfig, KNIMECellType> readFactory,
+        final ProductionPathProvider<KNIMECellType> defaultProductionPathProvider) {
         super(readFactory, defaultProductionPathProvider, true);
         m_settingsModelFilePanel = settingsModelReaderFileChooser;
         m_config = config;

@@ -49,7 +49,6 @@
 package org.knime.ext.poi3.node.io.filehandling.excel.reader;
 
 import org.knime.core.node.InvalidSettingsException;
-import org.knime.core.node.NodeSettings;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
@@ -57,6 +56,7 @@ import org.knime.core.node.port.PortObjectSpec;
 import org.knime.filehandling.core.node.table.reader.config.ConfigSerializer;
 import org.knime.filehandling.core.node.table.reader.config.DefaultMultiTableReadConfig;
 import org.knime.filehandling.core.node.table.reader.config.DefaultTableReadConfig;
+import org.knime.filehandling.core.util.SettingsUtils;
 
 /**
  * TODO implement once dialog is extended with more settings
@@ -81,7 +81,7 @@ enum ExcelMultiTableReadConfigSerializer implements
     public void loadInDialog(
         final DefaultMultiTableReadConfig<ExcelTableReaderConfig, DefaultTableReadConfig<ExcelTableReaderConfig>> config,
         final NodeSettingsRO settings, final PortObjectSpec[] specs) throws NotConfigurableException {
-        loadAdvancedSettingsTabInDialog(config, getOrEmpty(settings, CFG_ADVANCED_SETTINGS_TAB));
+        loadAdvancedSettingsTabInDialog(config, SettingsUtils.getOrEmpty(settings, CFG_ADVANCED_SETTINGS_TAB));
     }
 
     @Override
@@ -139,14 +139,6 @@ enum ExcelMultiTableReadConfigSerializer implements
 
     public static void validateAdvancedSettingsTab(final NodeSettingsRO settings) throws InvalidSettingsException {
         settings.getBoolean(CGF_USE_15_DIGITS_PRECISION);
-    }
-
-    private static NodeSettingsRO getOrEmpty(final NodeSettingsRO settings, final String key) {
-        try {
-            return settings.getNodeSettings(key);
-        } catch (InvalidSettingsException ise) { // NOSONAR
-            return new NodeSettings(key);
-        }
     }
 
 }

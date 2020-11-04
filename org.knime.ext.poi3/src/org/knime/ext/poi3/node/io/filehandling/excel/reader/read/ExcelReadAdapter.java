@@ -48,14 +48,15 @@
  */
 package org.knime.ext.poi3.node.io.filehandling.excel.reader.read;
 
+import org.knime.ext.poi3.node.io.filehandling.excel.reader.read.ExcelCell.KNIMECellType;
 import org.knime.filehandling.core.node.table.reader.ReadAdapter;
 
 /**
- * {@link ReadAdapter} implementation that uses {@link Class} objects as data type identifiers and {@link ExcelCells} as
- * value type.
+ * {@link ReadAdapter} implementation that uses {@link KNIMECellType}s as data type identifiers and
+ * {@link ExcelCells} as value type.
  *
  * @author Simon Schmid, KNIME GmbH, Konstanz, Germany
  */
-final class ExcelReadAdapter extends ReadAdapter<Class<?>, ExcelCell> {
+final class ExcelReadAdapter extends ReadAdapter<KNIMECellType, ExcelCell> {
     // yes this class needs to be empty
 }

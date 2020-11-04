@@ -50,9 +50,6 @@ package org.knime.ext.poi3.node.io.filehandling.excel.reader;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.Arrays;
 
 import org.apache.poi.UnsupportedFileFormatException;
@@ -79,9 +76,9 @@ import org.knime.filehandling.core.node.table.reader.type.hierarchy.TypeTester;
  *
  * @author Simon Schmid, KNIME GmbH, Konstanz, Germany
  */
-final class ExcelTableReader implements TableReader<ExcelTableReaderConfig, Class<?>, ExcelCell> {
+final class ExcelTableReader implements TableReader<ExcelTableReaderConfig, KNIMECellType, ExcelCell> {
 
-    static final TypeFocusableTypeHierarchy<Class<?>, ExcelCell> TYPE_HIERARCHY = createHierarchy();
+    static final TypeFocusableTypeHierarchy<KNIMECellType, ExcelCell> TYPE_HIERARCHY = createHierarchy();
 
     @Override
     public Read<ExcelCell> read(final Path path, final TableReadConfig<ExcelTableReaderConfig> config)
@@ -90,9 +87,9 @@ final class ExcelTableReader implements TableReader<ExcelTableReaderConfig, Clas
     }
 
     @Override
-    public TypedReaderTableSpec<Class<?>> readSpec(final Path path,
+    public TypedReaderTableSpec<KNIMECellType> readSpec(final Path path,
         final TableReadConfig<ExcelTableReaderConfig> config, final ExecutionMonitor exec) throws IOException {
-        final TableSpecGuesser<Class<?>, ExcelCell> guesser = createGuesser();
+        final TableSpecGuesser<KNIMECellType, ExcelCell> guesser = createGuesser();
         try (final ExcelRead read = getExcelRead(path, config)) {
             return guesser.guessSpec(read, config, exec);
         }
@@ -141,31 +138,33 @@ final class ExcelTableReader implements TableReader<ExcelTableReaderConfig, Clas
      */
     private static IllegalArgumentException createUnsupportedFileFormatException(final Exception e, final Path path,
         final String fileFormat) {
-        final String formatString = fileFormat != null ? ("(" + fileFormat + ") ") : "";
-        throw new IllegalArgumentException("The format " + formatString + "of the file '" + path
-            + "' is not supported. Please select an XLSX, XLSM, or XLS file.", e); // TODO add XLSB with AP-15391
+        final String formatString = fileFormat != null ? String.format(" (%s)", fileFormat) : "";
+        throw new IllegalArgumentException(
+            String.format("The format%s of the file '%s' is not supported. Please select an XLSX, XLSM, or XLS file.",
+                formatString, path),
+            e); // TODO add XLSB with AP-15391
     }
 
-    private static TableSpecGuesser<Class<?>, ExcelCell> createGuesser() {
-        return new TableSpecGuesser<>(createHierarchy(), ExcelCell::getStringValue);
+    private static TableSpecGuesser<KNIMECellType, ExcelCell> createGuesser() {
+        return new TableSpecGuesser<>(TYPE_HIERARCHY, ExcelCell::getStringValue);
     }
 
-    private static TypeFocusableTypeHierarchy<Class<?>, ExcelCell> createHierarchy() {
-        return TreeTypeHierarchy.builder(createTypeTester(String.class, KNIMECellType.values()))
-            .addType(String.class,
-                createTypeTester(Double.class, KNIMECellType.DOUBLE, KNIMECellType.LONG, KNIMECellType.INT))
-            .addType(Double.class, createTypeTester(Long.class, KNIMECellType.LONG, KNIMECellType.INT))
-            .addType(Long.class, createTypeTester(Integer.class, KNIMECellType.INT))
-            .addType(String.class, createTypeTester(Boolean.class, KNIMECellType.BOOLEAN))
-            .addType(String.class,
-                createTypeTester(LocalDateTime.class, KNIMECellType.LOCAL_DATE_TIME, KNIMECellType.LOCAL_DATE))
-            .addType(LocalDateTime.class, createTypeTester(LocalDate.class, KNIMECellType.LOCAL_DATE))
-            .addType(String.class, createTypeTester(LocalTime.class, KNIMECellType.LOCAL_TIME)).build();
+    private static TypeFocusableTypeHierarchy<KNIMECellType, ExcelCell> createHierarchy() {
+        return TreeTypeHierarchy.builder(createTypeTester(KNIMECellType.STRING, KNIMECellType.values()))
+            .addType(KNIMECellType.STRING,
+                createTypeTester(KNIMECellType.DOUBLE, KNIMECellType.LONG, KNIMECellType.INT))
+            .addType(KNIMECellType.DOUBLE, createTypeTester(KNIMECellType.LONG, KNIMECellType.INT))
+            .addType(KNIMECellType.LONG, createTypeTester(KNIMECellType.INT))
+            .addType(KNIMECellType.STRING, createTypeTester(KNIMECellType.BOOLEAN))
+            .addType(KNIMECellType.STRING, createTypeTester(KNIMECellType.LOCAL_DATE_TIME, KNIMECellType.LOCAL_DATE))
+            .addType(KNIMECellType.LOCAL_DATE_TIME, createTypeTester(KNIMECellType.LOCAL_DATE))
+            .addType(KNIMECellType.STRING, createTypeTester(KNIMECellType.LOCAL_TIME)).build();
     }
 
-    private static TypeTester<Class<?>, ExcelCell> createTypeTester(final Class<?> type,
-        final KNIMECellType... dataType) {
-        return TypeTester.createTypeTester(type, e -> Arrays.binarySearch(dataType, e.getType()) >= 0);
+    private static TypeTester<KNIMECellType, ExcelCell> createTypeTester(final KNIMECellType type,
+        final KNIMECellType... compatibleTypes) {
+        return TypeTester.createTypeTester(type,
+            e -> type == e.getType() || Arrays.binarySearch(compatibleTypes, e.getType()) >= 0);
     }
 
 }

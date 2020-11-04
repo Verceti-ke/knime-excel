@@ -52,7 +52,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 
 import org.knime.core.data.DataType;
@@ -74,6 +74,7 @@ import org.knime.core.data.time.localdate.LocalDateCellFactory;
 import org.knime.core.data.time.localdatetime.LocalDateTimeCellFactory;
 import org.knime.core.data.time.localtime.LocalTimeCellFactory;
 import org.knime.ext.poi3.node.io.filehandling.excel.reader.ExcelTableReaderConfig;
+import org.knime.ext.poi3.node.io.filehandling.excel.reader.read.ExcelCell.KNIMECellType;
 import org.knime.filehandling.core.node.table.reader.ReadAdapter;
 import org.knime.filehandling.core.node.table.reader.ReadAdapter.ReadAdapterParams;
 import org.knime.filehandling.core.node.table.reader.ReadAdapterFactory;
@@ -85,46 +86,47 @@ import org.knime.filehandling.core.node.table.reader.ReadAdapterFactory;
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
 @SuppressWarnings("javadoc")
-public enum ExcelReadAdapterFactory implements ReadAdapterFactory<Class<?>, ExcelCell> {
+public enum ExcelReadAdapterFactory implements ReadAdapterFactory<KNIMECellType, ExcelCell> {
 
         /** The singleton instance. */
         INSTANCE;
 
-    private static final ProducerRegistry<Class<?>, ExcelReadAdapter> PRODUCER_REGISTRY = initializeProducerRegistry();
+    private static final ProducerRegistry<KNIMECellType, ExcelReadAdapter> PRODUCER_REGISTRY =
+        initializeProducerRegistry();
 
-    private static final Map<Class<?>, DataType> DEFAULT_TYPES = createDefaultTypeMap();
+    private static final Map<KNIMECellType, DataType> DEFAULT_TYPES = createDefaultTypeMap();
 
-    private static Map<Class<?>, DataType> createDefaultTypeMap() {
-        final Map<Class<?>, DataType> defaultTypes = new HashMap<>();
-        defaultTypes.put(Boolean.class, BooleanCell.TYPE);
-        defaultTypes.put(Integer.class, IntCell.TYPE);
-        defaultTypes.put(Long.class, LongCell.TYPE);
-        defaultTypes.put(Double.class, DoubleCell.TYPE);
-        defaultTypes.put(String.class, StringCell.TYPE);
-        defaultTypes.put(LocalTime.class, LocalTimeCellFactory.TYPE);
-        defaultTypes.put(LocalDate.class, LocalDateCellFactory.TYPE);
-        defaultTypes.put(LocalDateTime.class, LocalDateTimeCellFactory.TYPE);
+    private static Map<KNIMECellType, DataType> createDefaultTypeMap() {
+        final Map<KNIMECellType, DataType> defaultTypes = new EnumMap<>(KNIMECellType.class);
+        defaultTypes.put(KNIMECellType.BOOLEAN, BooleanCell.TYPE);
+        defaultTypes.put(KNIMECellType.INT, IntCell.TYPE);
+        defaultTypes.put(KNIMECellType.LONG, LongCell.TYPE);
+        defaultTypes.put(KNIMECellType.DOUBLE, DoubleCell.TYPE);
+        defaultTypes.put(KNIMECellType.STRING, StringCell.TYPE);
+        defaultTypes.put(KNIMECellType.LOCAL_TIME, LocalTimeCellFactory.TYPE);
+        defaultTypes.put(KNIMECellType.LOCAL_DATE, LocalDateCellFactory.TYPE);
+        defaultTypes.put(KNIMECellType.LOCAL_DATE_TIME, LocalDateTimeCellFactory.TYPE);
         return Collections.unmodifiableMap(defaultTypes);
     }
 
-    private static ProducerRegistry<Class<?>, ExcelReadAdapter> initializeProducerRegistry() {
-        final ProducerRegistry<Class<?>, ExcelReadAdapter> registry =
+    private static ProducerRegistry<KNIMECellType, ExcelReadAdapter> initializeProducerRegistry() {
+        final ProducerRegistry<KNIMECellType, ExcelReadAdapter> registry =
             MappingFramework.forSourceType(ExcelReadAdapter.class);
+        registry.register(new SupplierCellValueProducerFactory<>(KNIMECellType.INT, Integer.class,
+            StringToIntCellValueProducer::new));
+        registry.register(new SupplierCellValueProducerFactory<>(KNIMECellType.DOUBLE, Double.class,
+            StringToDoubleCellValueProducer::new));
         registry.register(
-            new SupplierCellValueProducerFactory<>(Integer.class, Integer.class, StringToIntCellValueProducer::new));
-        registry.register(
-            new SupplierCellValueProducerFactory<>(Double.class, Double.class, StringToDoubleCellValueProducer::new));
-        registry.register(
-            new SupplierCellValueProducerFactory<>(Long.class, Long.class, StringToLongCellValueProducer::new));
-        registry.register(new SupplierCellValueProducerFactory<>(Boolean.class, Boolean.class,
+            new SupplierCellValueProducerFactory<>(KNIMECellType.LONG, Long.class, StringToLongCellValueProducer::new));
+        registry.register(new SupplierCellValueProducerFactory<>(KNIMECellType.BOOLEAN, Boolean.class,
             StringToBooleanCellValueProducer::new));
-        registry.register(new SimpleCellValueProducerFactory<>(String.class, String.class,
+        registry.register(new SimpleCellValueProducerFactory<>(KNIMECellType.STRING, String.class,
             ExcelReadAdapterFactory::readStringFromSource));
-        registry.register(new SimpleCellValueProducerFactory<>(LocalDate.class, LocalDate.class,
+        registry.register(new SimpleCellValueProducerFactory<>(KNIMECellType.LOCAL_DATE, LocalDate.class,
             ExcelReadAdapterFactory::readLocalDateFromSource));
-        registry.register(new SimpleCellValueProducerFactory<>(LocalTime.class, LocalTime.class,
+        registry.register(new SimpleCellValueProducerFactory<>(KNIMECellType.LOCAL_TIME, LocalTime.class,
             ExcelReadAdapterFactory::readLocalTimeFromSource));
-        registry.register(new SimpleCellValueProducerFactory<>(LocalDateTime.class, LocalDateTime.class,
+        registry.register(new SimpleCellValueProducerFactory<>(KNIMECellType.LOCAL_DATE_TIME, LocalDateTime.class,
             ExcelReadAdapterFactory::readLocalDateTimeFromSource));
         return registry;
     }
@@ -212,17 +214,17 @@ public enum ExcelReadAdapterFactory implements ReadAdapterFactory<Class<?>, Exce
     }
 
     @Override
-    public ReadAdapter<Class<?>, ExcelCell> createReadAdapter() {
+    public ReadAdapter<KNIMECellType, ExcelCell> createReadAdapter() {
         return new ExcelReadAdapter();
     }
 
     @Override
-    public ProducerRegistry<Class<?>, ExcelReadAdapter> getProducerRegistry() {
+    public ProducerRegistry<KNIMECellType, ExcelReadAdapter> getProducerRegistry() {
         return PRODUCER_REGISTRY;
     }
 
     @Override
-    public Map<Class<?>, DataType> getDefaultTypeMap() {
+    public Map<KNIMECellType, DataType> getDefaultTypeMap() {
         return DEFAULT_TYPES;
     }
 

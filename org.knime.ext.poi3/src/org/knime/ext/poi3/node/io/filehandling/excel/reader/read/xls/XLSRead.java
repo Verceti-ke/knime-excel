@@ -211,11 +211,11 @@ public final class XLSRead extends ExcelRead {
                         // columns with only "empty-but-formatted/styled" cells being appended (cells which had content
                         // before and were set to empty later might still be counted as cells by Excel and Apache POI)
                         numEmptyCells++;
-                        continue;
+                    } else {
+                        addNullsToList(numEmptyCells, cells);
+                        numEmptyCells = 0;
+                        cells.add(parseCell(cell, cell.getCellType()));
                     }
-                    addNullsToList(numEmptyCells, cells);
-                    numEmptyCells = 0;
-                    cells.add(parseCell(cell, cell.getCellType()));
                 }
                 // check if all cells of the row are which means the row is empty
                 if (cells.stream().noneMatch(Objects::nonNull)) {
@@ -241,7 +241,7 @@ public final class XLSRead extends ExcelRead {
             final ExcelCell excelCell;
             switch (cellType) {
                 case NUMERIC:
-                    excelCell = parseNumericCell(cell);
+                    excelCell = parseNumericOrDateCell(cell);
                     break;
                 case BOOLEAN:
                     excelCell = new ExcelCell(KNIMECellType.BOOLEAN, cell.getBooleanCellValue());
@@ -264,7 +264,7 @@ public final class XLSRead extends ExcelRead {
             return excelCell;
         }
 
-        private ExcelCell parseNumericCell(final Cell cell) {
+        private ExcelCell parseNumericOrDateCell(final Cell cell) {
             final ExcelCell excelCell;
             if (DateUtil.isCellDateFormatted(cell)) {
                 final LocalDateTime localDateTimeCellValue = cell.getLocalDateTimeCellValue();
