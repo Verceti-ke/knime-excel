@@ -15,41 +15,41 @@ properties([
 SSHD_IMAGE = "${dockerTools.ECR}/knime/sshd:alpine3.11"
 
 try {
-    knimetools.defaultTychoBuild('org.knime.update.ext.poi')
+    /* knimetools.defaultTychoBuild('org.knime.update.ext.poi') */
 
     configs = [
-        "Workflowtests" : {
-            workflowTests.runTests (
-                dependencies: [
-                    repositories: [
-                        "knime-excel",
-                        "knime-timeseries",
-                        "knime-jep",
-                        "knime-datageneration",
-                        "knime-filehandling",
-                        "knime-jfreechart",
-                        "knime-distance",
-                        "knime-exttool",
-                        "knime-chemistry",
-                        "knime-js-core",
-                        "knime-js-base",
-                        "knime-cloud",
-                        "knime-dl4j",
-                        "knime-textprocessing",
-                        "knime-database",
-                        "knime-kerberos",
-                        ]
-                ],
-                sidecarContainers: [
-                    [ image: SSHD_IMAGE, namePrefix: "SSHD", port: 22 ]
-                ],
-            )
-        },
+        /* "Workflowtests" : { */
+        /*     workflowTests.runTests ( */
+        /*         dependencies: [ */
+        /*             repositories: [ */
+        /*                 "knime-excel", */
+        /*                 "knime-timeseries", */
+        /*                 "knime-jep", */
+        /*                 "knime-datageneration", */
+        /*                 "knime-filehandling", */
+        /*                 "knime-jfreechart", */
+        /*                 "knime-distance", */
+        /*                 "knime-exttool", */
+        /*                 "knime-chemistry", */
+        /*                 "knime-js-core", */
+        /*                 "knime-js-base", */
+        /*                 "knime-cloud", */
+        /*                 "knime-dl4j", */
+        /*                 "knime-textprocessing", */
+        /*                 "knime-database", */
+        /*                 "knime-kerberos", */
+        /*                 ] */
+        /*         ], */
+        /*         sidecarContainers: [ */
+        /*             [ image: SSHD_IMAGE, namePrefix: "SSHD", port: 22 ] */
+        /*         ], */
+        /*     ) */
+        /* }, */
         "Filehandlingtests" : {
             workflowTests.runFilehandlingTests (
                 dependencies: [
                     repositories: [
-                        "knime-excel",
+                        "knime-excel", "knime-jep"
                     ]
                 ],
             )
