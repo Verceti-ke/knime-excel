@@ -48,6 +48,7 @@
  */
 package org.knime.ext.poi3.node.io.filehandling.excel.reader;
 
+import java.io.CharConversionException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -169,7 +170,7 @@ final class ExcelTableReader implements TableReader<ExcelTableReaderConfig, KNIM
         throws IOException {
         try {
             return new XLSXRead(path, config);
-        } catch (OLE2NotOfficeXmlFileException e) { // NOSONAR
+        } catch (OLE2NotOfficeXmlFileException | CharConversionException e) { // NOSONAR
             // Happens if an xls file has been specified that ends with xlsx or xlsm.
             // We do not fail but simply use the XLSParser instead.
             return new XLSRead(path, config);
